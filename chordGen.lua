@@ -154,13 +154,13 @@ local function drawBeam(color, mode, x1, y1, x2, y2)
     if mode == 'arrow' then
         local m = (x1 + x2) / 2
         polygon(1, color,
-            m, y2,
-            m + lw * .8, y2 * .9 + y1 * .1,
-            m + lw * .2, y2 * .9 + y1 * .1,
-            m + lw * .2, y1,
-            m - lw * .2, y1,
-            m - lw * .2, y2 * .9 + y1 * .1,
-            m - lw * .8, y2 * .9 + y1 * .1
+            m, y1,
+            m + lw * .8, y1 * .9 + y2 * .1,
+            m + lw * .2, y1 * .9 + y2 * .1,
+            m + lw * .2, y2,
+            m - lw * .2, y2,
+            m - lw * .2, y1 * .9 + y2 * .1,
+            m - lw * .8, y1 * .9 + y2 * .1
         )
     else
         if y1 > y2 then y1, y2 = y2, y1 end
@@ -394,7 +394,7 @@ else
         local chordStr = arg[i]
         local chord = SsvtDecode(chordStr)
         local svgData = toSvg(DrawChord(chord))
-        local fileName = "output_" .. i .. ".svg"
+        local fileName = i .. ".svg"
         io.open(fileName, "w"):write(svgData):close()
     end
     print("SVG files generated successfully.")
