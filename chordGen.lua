@@ -322,7 +322,7 @@ local function SsvtDecode(dat)
     return buf
 end
 
-local function toSvg(data, sizeMode, targetSize)
+local function toSvg(data, param)
     -- Calculate bounding box
     local minX, maxX, minY, maxY = 999, -999, 999, -999
     for i = 1, #data do
@@ -333,6 +333,9 @@ local function toSvg(data, sizeMode, targetSize)
             if y < minY then minY = y elseif y > maxY then maxY = y end
         end
     end
+
+    minX, maxX = minX - .1, maxX + .1
+    minY, maxY = minY - .1, maxY + .1
 
     -- Snap to zero & Flip vertically
     maxX, maxY = maxX - minX, maxY - minY
@@ -376,20 +379,25 @@ local function toSvg(data, sizeMode, targetSize)
                 )
         end
     end
-    local k
-    if sizeMode == 'w' then
-        k = targetSize / maxX
-    elseif sizeMode == 'h' then
-        k = targetSize / maxY
-    else
-        error("Invalid size mode")
+    local kx, ky
+    if param.w > 0 then kx = param.w / maxX end
+    if param.h > 0 then ky = param.h / maxY end
+    if not (kx and ky) then
+        if kx then
+            ky = kx
+        elseif ky then
+            kx = ky
+        else
+            kx, ky = 128, 128
+        end
     end
     return string.format(
-        [[<svg width="%d" height="%d" viewBox="0 0 %f %f" xmlns="http://www.w3.org/2000/svg"> %s </svg>]],
-        math.ceil(k * maxX),
-        math.ceil(k * maxY),
+        [[<svg width="%d" height="%d" viewBox="0 0 %f %f" xmlns="http://www.w3.org/2000/svg"> %s %s </svg>]],
+        math.ceil(kx * maxX),
+        math.ceil(ky * maxY),
         string.format("%.4g", maxX),
         string.format("%.4g", maxY),
+        param.bg and ([[<rect width="100%%" height="100%%" fill="#%s" />]]):format(param.bg) or "",
         shapeData
     )
 end
@@ -398,15 +406,24 @@ if #arg == 0 then
     print("Usage: lua chord.lua <chord1> <chord2> ...")
 else
     local count = 0
-    local sizeMode, targetSize = 'w', 256
+    local param = {
+        w = 128,
+        h = -1,
+        bg = false, -- 524E61
+    }
     for i = 1, #arg do
-        if arg[i] and arg[i]:match("^[wh]=%d+$") then
-            sizeMode = arg[i]:sub(1, 1)
-            targetSize = tonumber(arg[i]:match("%d+"))
+        if arg[i]:match("^w=%-?%d+") then
+            param.w = tonumber(arg[i]:match("%-?%d+"))
+        elseif arg[i]:match("^h=%-?%d+") then
+            param.h = tonumber(arg[i]:match("%-?%d+"))
+        elseif arg[i]:match("^bg=%x%x%x%x%x%x$") then
+            param.bg = arg[i]:match("%x%x%x%x%x%x")
+        elseif arg[i] == 'nobg' then
+            param.bg = false
         else
             local chordStr = arg[i]
             local chord = SsvtDecode(chordStr)
-            local svgData = toSvg(DrawChord(chord), sizeMode, targetSize)
+            local svgData = toSvg(DrawChord(chord), param)
             count = count + 1
             local fileName = count .. ".svg"
             io.open(fileName, "w"):write(svgData):close()
