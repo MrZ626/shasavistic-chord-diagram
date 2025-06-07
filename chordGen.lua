@@ -322,7 +322,7 @@ local function SsvtDecode(dat)
     return buf
 end
 
-local function toSvg(data)
+local function toSvg(data, sizeMode, targetSize)
     -- Calculate bounding box
     local minX, maxX, minY, maxY = 999, -999, 999, -999
     for i = 1, #data do
@@ -376,11 +376,18 @@ local function toSvg(data)
                 )
         end
     end
-    local scale = math.max(256 / maxX, 256 / maxY)
+    local k
+    if sizeMode == 'w' then
+        k = targetSize / maxX
+    elseif sizeMode == 'h' then
+        k = targetSize / maxY
+    else
+        error("Invalid size mode")
+    end
     return string.format(
         [[<svg width="%d" height="%d" viewBox="0 0 %f %f" xmlns="http://www.w3.org/2000/svg"> %s </svg>]],
-        math.ceil(scale * maxX),
-        math.ceil(scale * maxY),
+        math.ceil(k * maxX),
+        math.ceil(k * maxY),
         string.format("%.4g", maxX),
         string.format("%.4g", maxY),
         shapeData
@@ -390,12 +397,20 @@ end
 if #arg == 0 then
     print("Usage: lua chord.lua <chord1> <chord2> ...")
 else
+    local count = 0
+    local sizeMode, targetSize = 'w', 256
     for i = 1, #arg do
-        local chordStr = arg[i]
-        local chord = SsvtDecode(chordStr)
-        local svgData = toSvg(DrawChord(chord))
-        local fileName = i .. ".svg"
-        io.open(fileName, "w"):write(svgData):close()
+        if arg[i] and arg[i]:match("^[wh]=%d+$") then
+            sizeMode = arg[i]:sub(1, 1)
+            targetSize = tonumber(arg[i]:match("%d+"))
+        else
+            local chordStr = arg[i]
+            local chord = SsvtDecode(chordStr)
+            local svgData = toSvg(DrawChord(chord), sizeMode, targetSize)
+            count = count + 1
+            local fileName = count .. ".svg"
+            io.open(fileName, "w"):write(svgData):close()
+        end
     end
     print("SVG files generated successfully.")
 end
