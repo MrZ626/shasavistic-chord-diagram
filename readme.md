@@ -38,16 +38,16 @@ SVG files will be created at current directory.
 
 0`.`: skipped note
 
-0`x`: add root note mark
+0`x`: add bass note mark
 
 ## Extra Options
 
-|    Option    |                      Description                      |                            Note                             |
-| :----------: | :---------------------------------------------------: | :---------------------------------------------------------: |
-| `w=<number>` | specific width of the final result (default to w=128) |                                                             |
-| `h=<number>` | specific height of the final result (default to h=-1) | Negative value means auto height based on width, vice versa |
-| `bg=<color>` |               specific background color               |               Format: `RRGGBB` (hexadecimal)                |
-|    `nobg`    |          disable background color (default)           |                                                             |
+|    Option    |               Description               |                            Note                             |
+| :----------: | :-------------------------------------: | :---------------------------------------------------------: |
+| `w=<number>` | specific final width (default to w=128) |                                                             |
+| `h=<number>` | specific final height (default to h=-1) | Negative value means auto height based on width, vice versa |
+| `bg=<color>` |        specific background color        |               Format: `RRGGBB` (hexadecimal)                |
+|    `nobg`    |   disable background color (default)    |                                                             |
 
 > All options will apply to chords appended after them, you can use them multiple times during the process.
 
@@ -70,36 +70,19 @@ SVG files will be created at current directory.
 
 ## Tutorial
 
-The basic unit looks like:
-
-`0(...)`
-
-where `0` is the movement, and `(...)` contains more notes with same format based on it.
-
 Major chord example:
 
 It's composed of three notes:  
-Root note `0`  
-Root note with upward `2D movement`  
-Root note with upward `3D movement`
+Bass note `0`  
+Bass note with upward **2D movement**  
+Bass note with upward **3D movement**  
 
-So the chord looks like:
+So the chord looks like this: `0x(2,3)`
 
-`0(2,3)`
+Where `0` is the bass note, and `2` and `3` are based on it.
 
-Where `0` is the root note, and `2` and `3` are the notes based on it.
+First number `0` can be omitted: `x(2,3)`
 
-First number `0` can be omitted, so final result is:
+You can see that note `3` overlaps with note `2`, so we move it to `R`ight side: `(2,3r)`
 
-`(2,3)`
-
-We can notice that note `3` overlaps with the note `2`, so we move it to `R`ight side:
-
-`(2,3r)`
-
-Minor chord example:
-
-`(2(-3))`
-
-Note `3` is based on note `2`, so it's put in parentheses after `2`.  
-And it goes down, so there's a minus sign before it.
+And this is the minor chord example: `x(2(-3r))`

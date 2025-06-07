@@ -54,7 +54,7 @@ end
 ---@field d? SsvtDim
 ---@field note? 'skip' | 'dotted'
 ---@field bias? 'l' | 'r'
----@field root? true
+---@field bass? true
 ---@field [number] SsvtChord
 
 local lw = .1
@@ -101,7 +101,7 @@ local function lerp(a, b, t)
     return a * (1 - t) + b * t
 end
 
-local function drawRoot(mode, x1, x2)
+local function drawBass(mode, x1, x2)
     if mode == 'l' then
         polygon(99, "F0F0F0",
             x1 - 0.05, 0,
@@ -233,9 +233,9 @@ function DrawBranch(chord, x1, x2)
 
     moveOrigin(0, nData.yStep)
 
-    -- Root
-    if chord.root then
-        drawRoot(chord.bias or 'l', x1, x2)
+    -- Bass
+    if chord.bass then
+        drawBass(chord.bias or 'l', x1, x2)
     end
 
     -- Note
@@ -290,7 +290,7 @@ local function SsvtDecode(dat)
         elseif char == 'r' then
             buf.bias = 'r'
         elseif char == 'x' then
-            buf.root = true
+            buf.bass = true
         else
             break
         end
