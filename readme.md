@@ -1,11 +1,11 @@
 # SVG Shasavistic Chord Graph Generator
 
-|                                  |                                  |                                  |
-| :------------------------------: | :------------------------------: | :------------------------------: |
-| ![example1](/image/output_1.svg) | ![example2](/image/output_2.svg) | ![example3](/image/output_3.svg) |
-|          (2(3r),3r(2))           |         (2.(3(-4r(3))))          |         (1,2,3,4,5,6,7)          |
+|                     |                     |                     |                     |
+| :-----------------: | :-----------------: | :-----------------: | :-----------------: |
+| ![e1](/image/1.svg) | ![e2](/image/2.svg) | ![e3](/image/3.svg) | ![e4](/image/4.svg) |
+|    (2(3r),3r(2))    |    (2.,3r(-2x))     |   (2.(3(-4r(3))))   |   (1,2,3,4,5,6,7)   |
 
-![example_image](/image/chords_example.png)
+![chords](/image/chords.png)
 
 > Screenshot taken from [this video](https://youtu.be/8nxWoh4NBeE) (youtube)
 

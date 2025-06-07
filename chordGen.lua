@@ -101,18 +101,18 @@ local function lerp(a, b, t)
     return a * (1 - t) + b * t
 end
 
-local function drawRoot(mode)
+local function drawRoot(mode, x1, x2)
     if mode == 'l' then
         polygon(99, "F0F0F0",
-            -0.05, 0,
-            -0.12, .04,
-            -0.12, -.04
+            x1 - 0.05, 0,
+            x1 - 0.12, .04,
+            x1 - 0.12, -.04
         )
     else
         polygon(99, "F0F0F0",
-            1.05, 0,
-            1.12, .04,
-            1.12, -.04
+            x2 + 0.05, 0,
+            x2 + 0.12, .04,
+            x2 + 0.12, -.04
         )
     end
 end
@@ -228,7 +228,23 @@ end
 ---@param chord SsvtChord
 ---@param x1 number
 ---@param x2 number
-function DrawBranches(chord, x1, x2)
+function DrawBranch(chord, x1, x2)
+    local nData = dimData[chord.d]
+
+    moveOrigin(0, nData.yStep)
+
+    -- Root
+    if chord.root then
+        drawRoot(chord.bias or 'l', x1, x2)
+    end
+
+    -- Note
+    drawNote(chord.note, x1, x2)
+
+    -- Beam
+    drawBeam(nData.color, nData.draw, x1, 0, x2, -nData.yStep)
+
+    -- Branches
     for n = 1, #chord do
         local nxt = chord[n]
         if nxt.bias == 'l' then
@@ -239,29 +255,6 @@ function DrawBranches(chord, x1, x2)
             DrawBranch(nxt, x1, x2)
         end
     end
-end
-
----@param chord SsvtChord
----@param x1 number
----@param x2 number
-function DrawBranch(chord, x1, x2)
-    local nData = dimData[chord.d]
-
-    moveOrigin(0, nData.yStep)
-
-    -- Root
-    if chord.root then
-        drawRoot(x1 > 0 and x2 == 1 and 'r' or 'l')
-    end
-
-    -- Note
-    drawNote(chord.note, x1, x2)
-
-    -- Beam
-    drawBeam(nData.color, nData.draw, x1, 0, x2, -nData.yStep)
-
-    -- Branches
-    DrawBranches(chord, x1, x2)
 
     moveOrigin(0, -nData.yStep)
 end
@@ -269,9 +262,7 @@ end
 ---@param chord SsvtChord
 function DrawChord(chord)
     drawBuffer = {}
-    if chord.root then drawRoot('l') end
-    drawNote(chord.note, 0, 1)
-    DrawBranches(chord, 0, 1)
+    DrawBranch(chord, 0, 1)
     table.sort(drawBuffer, function(a, b) return a.layer < b.layer end)
     return drawBuffer
 end
@@ -388,10 +379,10 @@ local function toSvg(data)
     local scale = math.max(256 / maxX, 256 / maxY)
     return string.format(
         [[<svg width="%d" height="%d" viewBox="0 0 %f %f" xmlns="http://www.w3.org/2000/svg"> %s </svg>]],
-        tostring(math.ceil(scale * maxX)),
-        tostring(math.ceil(scale * maxY)),
-        tostring(maxX),
-        tostring(maxY),
+        math.ceil(scale * maxX),
+        math.ceil(scale * maxY),
+        string.format("%.4g", maxX),
+        string.format("%.4g", maxY),
         shapeData
     )
 end
