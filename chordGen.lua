@@ -54,6 +54,7 @@ end
 ---@field d? SsvtDim
 ---@field note? 'skip' | 'dotted'
 ---@field bias? 'l' | 'r'
+---@field root? true
 ---@field [number] SsvtChord
 
 local lw = .1
@@ -100,35 +101,50 @@ local function lerp(a, b, t)
     return a * (1 - t) + b * t
 end
 
-local function drawNote(mode, x1, x2, y)
+local function drawRoot(mode)
+    if mode == 'l' then
+        polygon(99, "F0F0F0",
+            -0.05, 0,
+            -0.12, .04,
+            -0.12, -.04
+        )
+    else
+        polygon(99, "F0F0F0",
+            1.05, 0,
+            1.12, .04,
+            1.12, -.04
+        )
+    end
+end
+local function drawNote(mode, x1, x2)
     if mode == 'dotted' then
         -- Dotted line
         for i = 0, 10, 2 do
             local x = lerp(x1 + .05, x2 - .05, i / 11)
             local w = (x2 - x1 - .1) / 11
             polygon(0, "F0F0F0",
-                x, y - nw / 2,
-                x + w, y - nw / 2,
-                x + w, y + nw / 2,
-                x, y + nw / 2
+                x, -nw / 2,
+                x + w, -nw / 2,
+                x + w, nw / 2,
+                x, nw / 2
             )
         end
     elseif mode == 'skip' then
         -- Short line
         x1, x2 = lerp(x1, x2, .3), lerp(x2, x1, .3)
         polygon(0, "808080",
-            x1 + .05, y - nw / 2,
-            x2 - .05, y - nw / 2,
-            x2 - .05, y + nw / 2,
-            x1 + .05, y + nw / 2
+            x1 + .05, -nw / 2,
+            x2 - .05, -nw / 2,
+            x2 - .05, nw / 2,
+            x1 + .05, nw / 2
         )
     else
         -- Line
         polygon(0, "F0F0F0",
-            x1 + .05, y - nw / 2,
-            x2 - .05, y - nw / 2,
-            x2 - .05, y + nw / 2,
-            x1 + .05, y + nw / 2
+            x1 + .05, -nw / 2,
+            x2 - .05, -nw / 2,
+            x2 - .05, nw / 2,
+            x1 + .05, nw / 2
         )
     end
 end
@@ -231,22 +247,30 @@ end
 function DrawBranch(chord, x1, x2)
     local nData = dimData[chord.d]
 
+    moveOrigin(0, nData.yStep)
+
+    -- Root
+    if chord.root then
+        drawRoot(x1 > 0 and x2 == 1 and 'r' or 'l')
+    end
+
     -- Note
-    drawNote(chord.note, x1, x2, nData.yStep)
+    drawNote(chord.note, x1, x2)
 
     -- Beam
-    drawBeam(nData.color, nData.draw, x1, 0, x2, nData.yStep)
+    drawBeam(nData.color, nData.draw, x1, 0, x2, -nData.yStep)
 
     -- Branches
-    moveOrigin(0, nData.yStep)
     DrawBranches(chord, x1, x2)
+
     moveOrigin(0, -nData.yStep)
 end
 
 ---@param chord SsvtChord
 function DrawChord(chord)
     drawBuffer = {}
-    drawNote(chord.note, 0, 1, 0)
+    if chord.root then drawRoot('l') end
+    drawNote(chord.note, 0, 1)
     DrawBranches(chord, 0, 1)
     table.sort(drawBuffer, function(a, b) return a.layer < b.layer end)
     return drawBuffer
@@ -274,6 +298,8 @@ local function SsvtDecode(dat)
             buf.bias = 'l'
         elseif char == 'r' then
             buf.bias = 'r'
+        elseif char == 'x' then
+            buf.root = true
         else
             break
         end
@@ -305,8 +331,6 @@ local function SsvtDecode(dat)
     return buf
 end
 
-local svgPattern = [[<svg width="$W" height="$H" viewBox="0 0 $w $h" xmlns="http://www.w3.org/2000/svg">$SHAPES</svg>]]
--- <rect x="1" y="1" width="1" height="1" fill="#FFB900" />
 local function toSvg(data)
     -- Calculate bounding box
     local minX, maxX, minY, maxY = 999, -999, 999, -999
@@ -337,13 +361,6 @@ local function toSvg(data)
         end
     end
 
-    local scale = math.max(256 / maxX, 256 / maxY)
-    local res = svgPattern
-    res = res:gsub("$W", tostring(math.ceil(scale * maxX)), 1)
-    res = res:gsub("$H", tostring(math.ceil(scale * maxY)), 1)
-    res = res:gsub("$w", tostring(math.ceil(maxX)), 1)
-    res = res:gsub("$h", tostring(math.ceil(maxY)), 1)
-
     local shapeData = ""
     for i = 1, #data do
         local shape = data[i]
@@ -368,9 +385,15 @@ local function toSvg(data)
                 )
         end
     end
-    res = res:gsub("$SHAPES", shapeData)
-
-    return res
+    local scale = math.max(256 / maxX, 256 / maxY)
+    return string.format(
+        [[<svg width="%d" height="%d" viewBox="0 0 %f %f" xmlns="http://www.w3.org/2000/svg"> %s </svg>]],
+        tostring(math.ceil(scale * maxX)),
+        tostring(math.ceil(scale * maxY)),
+        tostring(maxX),
+        tostring(maxY),
+        shapeData
+    )
 end
 
 if #arg == 0 then

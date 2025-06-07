@@ -1,9 +1,9 @@
 # SVG Shasavistic Chord Graph Generator
 
-|                                         |                                         |                                         |
-| :-------------------------------------: | :-------------------------------------: | :-------------------------------------: |
-| ![example_output1](/image/output_1.svg) | ![example_output2](/image/output_2.svg) | ![example_output3](/image/output_3.svg) |
-|              (2(3r),3r(2))              |             (2.(3(-4r(3))))             |             (1,2,3,4,5,6,7)             |
+|                                  |                                  |                                  |
+| :------------------------------: | :------------------------------: | :------------------------------: |
+| ![example1](/image/output_1.svg) | ![example2](/image/output_2.svg) | ![example3](/image/output_3.svg) |
+|          (2(3r),3r(2))           |         (2.(3(-4r(3))))          |         (1,2,3,4,5,6,7)          |
 
 ![example_image](/image/chords_example.png)
 
@@ -17,7 +17,7 @@ SVG files will be created at current directory.
 
 ## Syntax
 
-`0/1/2/3/4/5/6`: note
+`0/1/2/3/4/5/6/7`: note
 
 0`(...)`: note groups (separated by comma)
 
@@ -29,7 +29,7 @@ SVG files will be created at current directory.
 
 0`.`: skipped note
 
-0`x`: explicitly specify the root note (not implemented yet)
+0`x`: explicitly specify the root note
 
 ## Other Examples
 
