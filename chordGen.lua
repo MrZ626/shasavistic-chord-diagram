@@ -76,6 +76,22 @@ local function polygon(layer, color, ...)
     table.insert(drawBuffer, {
         layer = layer,
         color = color,
+        type = 'polygon',
+        points = points,
+    })
+end
+
+-- Warning: not any path
+local function path(layer, color, ...)
+    local points = { ... }
+    for i = 1, #points, 2 do
+        points[i] = points[i] + ucs_x
+        points[i + 1] = points[i + 1] + ucs_y
+    end
+    table.insert(drawBuffer, {
+        layer = layer,
+        color = color,
+        type = 'path',
         points = points,
     })
 end
@@ -136,16 +152,16 @@ local function drawBeam(color, mode, x1, y1, x2, y2)
         if mode == 'left' then
             polygon(2, color,
                 x1, y1,
-                x1 + lw, y1,
+                x1, y2,
                 x1 + lw, y2,
-                x1, y2
+                x1 + lw, y1
             )
         elseif mode == 'right' then
             polygon(2, color,
                 x2, y1,
-                x2 - lw, y1,
+                x2, y2,
                 x2 - lw, y2,
-                x2, y2
+                x2 - lw, y1
             )
         elseif mode == 'mid' then
             local m = (x1 + x2) / 2
@@ -170,30 +186,22 @@ local function drawBeam(color, mode, x1, y1, x2, y2)
                 x1 + lw * 1.1, y2
             )
         elseif mode == 'arcleft' then
-            polygon(4, color,
-                x1 + lw, y1,
-                x1 - lw * .1, (y1 + y2) * 2 / 10,
-                x1 - lw * .5, (y1 + y2) * 4 / 8,
-                x1 - lw * .1, (y1 + y2) * 8 / 10,
+            path(4, color,
+                x1, y1,
+                x1 - 2.6 * lw, (y1 + y2) / 2,
+                x1, y2,
                 x1 + lw, y2,
-                x1 + 00, y2,
-                x1 - lw * 1.1, (y1 + y2) * 8 / 10,
-                x1 - lw * 1.5, (y1 + y2) * 4 / 8,
-                x1 - lw * 1.1, (y1 + y2) * 2 / 10,
-                x1 + 00, y1
+                x1 + lw - 2.6 * lw, (y1 + y2) / 2,
+                x1 + lw, y1
             )
         elseif mode == 'arcright' then
-            polygon(4, color,
-                x2 - lw, y1,
-                x2 + lw * .1, (y1 + y2) * 2 / 10,
-                x2 + lw * .5, (y1 + y2) * 4 / 8,
-                x2 + lw * .1, (y1 + y2) * 8 / 10,
+            path(4, color,
+                x2, y1,
+                x2 + 2.6 * lw, (y1 + y2) / 2,
+                x2, y2,
                 x2 - lw, y2,
-                x2 - 00, y2,
-                x2 + lw * 1.1, (y1 + y2) * 8 / 10,
-                x2 + lw * 1.5, (y1 + y2) * 4 / 8,
-                x2 + lw * 1.1, (y1 + y2) * 2 / 10,
-                x2 - 00, y1
+                x2 - lw + 2.6 * lw, (y1 + y2) / 2,
+                x2 - lw, y1
             )
         else
             error("Unknown beam style: " .. mode)
@@ -331,19 +339,34 @@ local function toSvg(data)
 
     local scale = math.max(256 / maxX, 256 / maxY)
     local res = svgPattern
-    res = res:gsub("$W", tostring(scale * maxX), 1)
-    res = res:gsub("$H", tostring(scale * maxY), 1)
-    res = res:gsub("$w", tostring(maxX), 1)
-    res = res:gsub("$h", tostring(maxY), 1)
+    res = res:gsub("$W", tostring(math.ceil(scale * maxX)), 1)
+    res = res:gsub("$H", tostring(math.ceil(scale * maxY)), 1)
+    res = res:gsub("$w", tostring(math.ceil(maxX)), 1)
+    res = res:gsub("$h", tostring(math.ceil(maxY)), 1)
 
     local shapeData = ""
     for i = 1, #data do
         local shape = data[i]
-        shapeData = shapeData ..
-            ([['<polygon points="%s" fill="#%s" />']]):format(
-                table.concat(shape.points, ","),
-                shape.color
-            )
+        if shape.type == 'polygon' then
+            shapeData = shapeData ..
+                ([[<polygon points="%s" fill="#%s" />]]):format(
+                    table.concat(shape.points, ","),
+                    shape.color
+                )
+        elseif shape.type == 'path' then
+            shape.points = {
+                "M", shape.points[1], shape.points[2],
+                "Q", shape.points[3], shape.points[4], shape.points[5], shape.points[6],
+                "L", shape.points[7], shape.points[8],
+                "Q", shape.points[9], shape.points[10], shape.points[11], shape.points[12],
+                "Z",
+            }
+            shapeData = shapeData ..
+                ([[<path d="%s" fill="#%s" />]]):format(
+                    table.concat(shape.points, " "),
+                    shape.color
+                )
+        end
     end
     res = res:gsub("$SHAPES", shapeData)
 
