@@ -1,29 +1,36 @@
 # SVG Shasavistic Chord Graph Generator
 
-|                   |                   |                     |                             |
-| :---------------: | :---------------: | :-----------------: | :-------------------------: |
-| ![e1](/img/1.svg) | ![e2](/img/2.svg) |  ![e3](/img/3.svg)  |      ![e4](/img/4.svg)      |
-| **(2(3r),3r(2))** | **(2.,3r(-2x))**  | **(2.(3(-4r(3))))** | **(1.(1),4(-2),5(-3),6,7)** |
-
-<!-- lua chordGen.lua bg=524E61 "(2(3r),3r(2))" "(2.,3r(-2x))" "(2.(3(-4r(3))))" "(1.(1),4(-2),5(-3),6,7)" -->
+Original Design from **LΛMPLIGHT**: [Website](https://lamplight0.sakura.ne.jp/a/) [YouTube](https://www.youtube.com/@L4MPLIGHT)  
 
 ![chords](/img/chords.png)
 
 > Screenshot taken from [this video](https://youtu.be/8nxWoh4NBeE) (youtube)
 
+Graph Code & SVG Renderer designed by MrZ_26:
+
+| **(2(3r),3r(2))** | **(2.,3r(-2x))**  | **(2.(3(-4r(3))))** | **(1.(1),4(-2),5(-3),6,7)** |
+| :---------------: | :---------------: | :-----------------: | :-------------------------: |
+| ![e1](/img/1.svg) | ![e2](/img/2.svg) |  ![e3](/img/3.svg)  |      ![e4](/img/4.svg)      |
+
+<!-- lua chordGen.lua bg=524E61 "(2(3r),3r(2))" "(2.,3r(-2x))" "(2.(3(-4r(3))))" "(1.(1),4(-2),5(-3),6,7)" -->
+
+## Basic Info
+
 Environment: Lua
 
-Usage: `lua chordGen.lua "[chord1]" "[chord2]" ...`
+Usage: `lua chordGen.lua [option] chord1 chord2 ...`
+
+Example: `lua chordGen.lua w=256 bg=524E61 "(2,3r)" "(2(-3r))"`
 
 SVG files will be created at current directory.
 
 ## Chord Code Syntax
 
-`0/1/2/3/4/5/6/7`: note
+`0` `1` `2` ... `7`: note movement
 
 0`(...)`: note groups (separated by comma)
 
-`-`0: move down
+`-`0: move downwards
 
 0`r`: put at right side
 
@@ -31,7 +38,7 @@ SVG files will be created at current directory.
 
 0`.`: skipped note
 
-0`x`: explicitly specify the root note
+0`x`: add root note mark
 
 ## Extra Options
 
