@@ -1,6 +1,8 @@
 # SVG Shasavistic Chord Graph Generator
 
-Original Design from **LΛMPLIGHT**: [Website](https://lamplight0.sakura.ne.jp/a/) [YouTube](https://www.youtube.com/@L4MPLIGHT)  
+Original Design from **LΛMPLIGHT**:
+[YouTube](https://www.youtube.com/@L4MPLIGHT)
+[Website](https://lamplight0.sakura.ne.jp/a/)
 
 ![chords](/img/chords.png)
 
