@@ -147,6 +147,14 @@ local function drawBeam(color, mode, x1, y1, x2, y2)
                 x2 - lw, y2,
                 x2, y2
             )
+        elseif mode == 'mid' then
+            local m = (x1 + x2) / 2
+            polygon(2, color,
+                m - lw / 4, y1,
+                m + lw / 4, y1,
+                m + lw / 4, y2,
+                m - lw / 4, y2
+            )
         elseif mode == 'rise' then
             polygon(3, color,
                 x1, y1,
@@ -161,21 +169,31 @@ local function drawBeam(color, mode, x1, y1, x2, y2)
                 x1, y2,
                 x1 + lw * 1.1, y2
             )
-        elseif mode == 'mid' then
-            local m = (x1 + x2) / 2
-            polygon(2, color,
-                m - lw / 4, y1,
-                m + lw / 4, y1,
-                m + lw / 4, y2,
-                m - lw / 4, y2
-            )
-        elseif mode == 'halfleft' then
-            local m = (x1 + x2) / 3
+        elseif mode == 'arcleft' then
             polygon(4, color,
-                m - lw / 2, y1,
-                m + lw / 2, y1,
-                m + lw / 2, y2,
-                m - lw / 2, y2
+                x1 + lw, y1,
+                x1 - lw * .1, (y1 + y2) * 2 / 10,
+                x1 - lw * .5, (y1 + y2) * 4 / 8,
+                x1 - lw * .1, (y1 + y2) * 8 / 10,
+                x1 + lw, y2,
+                x1 + 00, y2,
+                x1 - lw * 1.1, (y1 + y2) * 8 / 10,
+                x1 - lw * 1.5, (y1 + y2) * 4 / 8,
+                x1 - lw * 1.1, (y1 + y2) * 2 / 10,
+                x1 + 00, y1
+            )
+        elseif mode == 'arcright' then
+            polygon(4, color,
+                x2 - lw, y1,
+                x2 + lw * .1, (y1 + y2) * 2 / 10,
+                x2 + lw * .5, (y1 + y2) * 4 / 8,
+                x2 + lw * .1, (y1 + y2) * 8 / 10,
+                x2 - lw, y2,
+                x2 - 00, y2,
+                x2 + lw * 1.1, (y1 + y2) * 8 / 10,
+                x2 + lw * 1.5, (y1 + y2) * 4 / 8,
+                x2 + lw * 1.1, (y1 + y2) * 2 / 10,
+                x2 - 00, y1
             )
         else
             error("Unknown beam style: " .. mode)

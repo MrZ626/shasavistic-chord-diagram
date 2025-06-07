@@ -1,9 +1,9 @@
 # SVG Shasavistic Chord Graph Generator
 
-|                                         |                                         |
-| :-------------------------------------: | :-------------------------------------: |
-| ![example_output1](/image/output_1.svg) | ![example_output2](/image/output_2.svg) |
-|              (2(3r),3r(2))              |             (2.(3(-4r(3))))             |
+|                                         |                                         |                                         |
+| :-------------------------------------: | :-------------------------------------: | :-------------------------------------: |
+| ![example_output1](/image/output_1.svg) | ![example_output2](/image/output_2.svg) | ![example_output3](/image/output_3.svg) |
+|              (2(3r),3r(2))              |             (2.(3(-4r(3))))             |             (1,2,3,4,5,6,7)             |
 
 ![example_image](/image/chords_example.png)
 
