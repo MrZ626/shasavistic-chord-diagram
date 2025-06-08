@@ -73,31 +73,20 @@ local function moveOrigin(dx, dy)
     ucs_y = ucs_y + dy
 end
 
-local function polygon(layer, color, ...)
+local function addShape(mode, color, layer, ...)
     local points = { ... }
-    for i = 1, #points, 2 do
-        points[i] = points[i] + ucs_x
-        points[i + 1] = points[i + 1] + ucs_y
+    local numCount = 0
+    for i = 1, #points do
+        if type(points[i]) == 'number' then
+            numCount = numCount + 1
+            points[i] = points[i] + (numCount % 2 == 1 and ucs_x or ucs_y)
+        end
     end
-    table.insert(drawBuffer, {
-        layer = layer,
-        color = color,
-        type = 'polygon',
-        points = points,
-    })
-end
 
--- Warning: not any path
-local function path(layer, color, ...)
-    local points = { ... }
-    for i = 1, #points, 2 do
-        points[i] = points[i] + ucs_x
-        points[i + 1] = points[i + 1] + ucs_y
-    end
     table.insert(drawBuffer, {
+        mode = mode,
         layer = layer,
         color = color,
-        type = 'path',
         points = points,
     })
 end
@@ -108,13 +97,13 @@ end
 
 local function drawBass(mode, x1, x2)
     if mode == 'l' then
-        polygon(99, "F0F0F0",
+        addShape('polygon', "F0F0F0", 99,
             x1 - 0.05, 0,
             x1 - 0.12, .04,
             x1 - 0.12, -.04
         )
     else
-        polygon(99, "F0F0F0",
+        addShape('polygon', "F0F0F0", 99,
             x2 + 0.05, 0,
             x2 + 0.12, .04,
             x2 + 0.12, -.04
@@ -127,7 +116,7 @@ local function drawNote(mode, x1, x2)
         for i = 0, 10, 2 do
             local x = lerp(x1 + .05, x2 - .05, i / 11)
             local w = (x2 - x1 - .1) / 11
-            polygon(0, "F0F0F0",
+            addShape('polygon', "F0F0F0", 0,
                 x, -nw / 2,
                 x + w, -nw / 2,
                 x + w, nw / 2,
@@ -137,7 +126,7 @@ local function drawNote(mode, x1, x2)
     elseif mode == 'skip' then
         -- Short line
         x1, x2 = lerp(x1, x2, .3), lerp(x2, x1, .3)
-        polygon(0, "808080",
+        addShape('polygon', "808080", 0,
             x1 + .05, -nw / 2,
             x2 - .05, -nw / 2,
             x2 - .05, nw / 2,
@@ -145,7 +134,7 @@ local function drawNote(mode, x1, x2)
         )
     else
         -- Line
-        polygon(0, "F0F0F0",
+        addShape('polygon', "F0F0F0", 0,
             x1 + .05, -nw / 2,
             x2 - .05, -nw / 2,
             x2 - .05, nw / 2,
@@ -158,7 +147,7 @@ local function drawBeam(color, mode, x1, y1, x2, y2)
     if mode == 'none' then return end
     if mode == 'arrow' then
         local m = (x1 + x2) / 2
-        polygon(1, color,
+        addShape('polygon', color, 1,
             m, y1,
             m + lw * .8, y1 * .9 + y2 * .1,
             m + lw * .2, y1 * .9 + y2 * .1,
@@ -171,14 +160,14 @@ local function drawBeam(color, mode, x1, y1, x2, y2)
         if y1 > y2 then y1, y2 = y2, y1 end
         y1, y2 = y1 - nw / 2, y2 + nw / 2
         if mode == 'left' then
-            polygon(2, color,
+            addShape('polygon', color, 2,
                 x1, y1,
                 x1, y2,
                 x1 + lw, y2,
                 x1 + lw, y1
             )
         elseif mode == 'right' then
-            polygon(2, color,
+            addShape('polygon', color, 2,
                 x2, y1,
                 x2, y2,
                 x2 - lw, y2,
@@ -186,43 +175,41 @@ local function drawBeam(color, mode, x1, y1, x2, y2)
             )
         elseif mode == 'mid' then
             local m = (x1 + x2) / 2
-            polygon(2, color,
+            addShape('polygon', color, 2,
                 m - lw / 4, y1,
                 m + lw / 4, y1,
                 m + lw / 4, y2,
                 m - lw / 4, y2
             )
         elseif mode == 'rise' then
-            polygon(3, color,
+            addShape('polygon', color, 3,
                 x1, y1,
                 x1 + lw * 1.26, y1,
                 x2, y2,
                 x2 - lw * 1.26, y2
             )
         elseif mode == 'fall' then
-            polygon(3, color,
+            addShape('polygon', color, 3,
                 x2, y1,
                 x2 - lw * 1.1, y1,
                 x1, y2,
                 x1 + lw * 1.1, y2
             )
         elseif mode == 'arcleft' then
-            path(4, color,
-                x1, y1,
-                x1 - 2.6 * lw, (y1 + y2) / 2,
-                x1, y2,
-                x1 + lw, y2,
-                x1 + lw - 2.6 * lw, (y1 + y2) / 2,
-                x1 + lw, y1
+            addShape('path', color, 4,
+                "M", x1, y1,
+                "Q", x1 - 2.6 * lw, (y1 + y2) / 2, x1, y2,
+                "L", x1 + lw, y2,
+                "Q", x1 + lw - 2.6 * lw, (y1 + y2) / 2, x1 + lw, y1,
+                "Z"
             )
         elseif mode == 'arcright' then
-            path(4, color,
-                x2, y1,
-                x2 + 2.6 * lw, (y1 + y2) / 2,
-                x2, y2,
-                x2 - lw, y2,
-                x2 - lw + 2.6 * lw, (y1 + y2) / 2,
-                x2 - lw, y1
+            addShape('path', color, 4,
+                "M", x2, y1,
+                "Q", x2 + 2.6 * lw, (y1 + y2) / 2, x2, y2,
+                "L", x2 - lw, y2,
+                "Q", x2 - lw + 2.6 * lw, (y1 + y2) / 2, x2 - lw, y1,
+                "Z"
             )
         else
             error("Unknown beam style: " .. mode)
@@ -332,10 +319,16 @@ local function toSvg(data, param)
     local minX, maxX, minY, maxY = 999, -999, 999, -999
     for i = 1, #data do
         local shape = data[i].points
-        for j = 1, #shape, 2 do
-            local x, y = shape[j], shape[j + 1]
-            if x < minX then minX = x elseif x > maxX then maxX = x end
-            if y < minY then minY = y elseif y > maxY then maxY = y end
+        local numCount = 0
+        for j = 1, #shape do
+            if type(shape[j]) == 'number' then
+                numCount = numCount + 1
+                if numCount % 2 == 1 then
+                    if shape[j] < minX then minX = shape[j] elseif shape[j] > maxX then maxX = shape[j] end
+                else
+                    if shape[j] < minY then minY = shape[j] elseif shape[j] > maxY then maxY = shape[j] end
+                end
+            end
         end
     end
 
@@ -346,37 +339,39 @@ local function toSvg(data, param)
     maxX, maxY = maxX - minX, maxY - minY
     for i = 1, #data do
         local shape = data[i].points
-        for j = 1, #shape, 2 do
-            shape[j] = shape[j] - minX
-            shape[j + 1] = maxY - (shape[j + 1] - minY)
+        local numCount = 0
+        for j = 1, #shape do
+            if type(shape[j]) == 'number' then
+                numCount = numCount + 1
+                if numCount % 2 == 1 then
+                    shape[j] = shape[j] - minX
+                else
+                    shape[j] = maxY - (shape[j] - minY)
+                end
+            end
         end
     end
 
-    -- Strinify
+    -- Stringify (to 4 significant digits)
     for i = 1, #data do
         local shape = data[i].points
         for j = 1, #shape do
-            shape[j] = string.format("%.4g", shape[j])
+            if type(shape[j]) == 'number' then
+                shape[j] = string.format("%.4g", shape[j])
+            end
         end
     end
 
     local shapeData = ""
     for i = 1, #data do
         local shape = data[i]
-        if shape.type == 'polygon' then
+        if shape.mode == 'polygon' then
             shapeData = shapeData ..
                 ([[<polygon points="%s" fill="#%s" />]]):format(
                     table.concat(shape.points, ","),
                     shape.color
                 )
-        elseif shape.type == 'path' then
-            shape.points = {
-                "M", shape.points[1], shape.points[2],
-                "Q", shape.points[3], shape.points[4], shape.points[5], shape.points[6],
-                "L", shape.points[7], shape.points[8],
-                "Q", shape.points[9], shape.points[10], shape.points[11], shape.points[12],
-                "Z",
-            }
+        elseif shape.mode == 'path' then
             shapeData = shapeData ..
                 ([[<path d="%s" fill="#%s" />]]):format(
                     table.concat(shape.points, " "),
@@ -397,7 +392,7 @@ local function toSvg(data, param)
         end
     end
     return string.format(
-        [[<svg width="%d" height="%d" viewBox="0 0 %f %f" xmlns="http://www.w3.org/2000/svg"> %s %s </svg>]],
+        [[<svg width="%d" height="%d" viewBox="0 0 %f %f" xmlns="http://www.w3.org/2000/svg">%s%s</svg>]],
         math.ceil(kx * maxX),
         math.ceil(ky * maxY),
         string.format("%.4g", maxX),
@@ -431,4 +426,4 @@ for i = 1, #arg do
         io.open(fileName, "w"):write(svgData):close()
     end
 end
-print(count .. " SVG files generated successfully.")
+print(count .. " x SVG generated successfully.")
