@@ -223,6 +223,8 @@ end
 function DrawBranch(chord, x1, x2)
     local nData = dimData[chord.d]
 
+    assert(nData, "Unknown dimension: " .. tostring(chord.d))
+
     moveOrigin(0, nData.yStep)
 
     -- Bass
