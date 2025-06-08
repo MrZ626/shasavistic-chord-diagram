@@ -1,3 +1,8 @@
+if #arg == 0 or arg[1] == '-h' or arg[1] == '--help' then
+    print("Usage: lua chordGen.lua [option] chord1 chord2 ...")
+    return
+end
+
 local dimData = {
     [0] = { -- 0D
         yStep = 0,
@@ -402,32 +407,28 @@ local function toSvg(data, param)
     )
 end
 
-if #arg == 0 then
-    print("Usage: lua chord.lua <chord1> <chord2> ...")
-else
-    local count = 0
-    local param = {
-        w = 128,
-        h = -1,
-        bg = false, -- 524E61
-    }
-    for i = 1, #arg do
-        if arg[i]:match("^w=%-?%d+") then
-            param.w = tonumber(arg[i]:match("%-?%d+"))
-        elseif arg[i]:match("^h=%-?%d+") then
-            param.h = tonumber(arg[i]:match("%-?%d+"))
-        elseif arg[i]:match("^bg=%x%x%x%x%x%x$") then
-            param.bg = arg[i]:match("%x%x%x%x%x%x")
-        elseif arg[i] == 'nobg' then
-            param.bg = false
-        else
-            local chordStr = arg[i]
-            local chord = SsvtDecode(chordStr)
-            local svgData = toSvg(DrawChord(chord), param)
-            count = count + 1
-            local fileName = count .. ".svg"
-            io.open(fileName, "w"):write(svgData):close()
-        end
+local count = 0
+local param = {
+    w = 128,
+    h = -1,
+    bg = false, -- 524E61
+}
+for i = 1, #arg do
+    if arg[i]:match("^w=%-?%d+") then
+        param.w = tonumber(arg[i]:match("%-?%d+"))
+    elseif arg[i]:match("^h=%-?%d+") then
+        param.h = tonumber(arg[i]:match("%-?%d+"))
+    elseif arg[i]:match("^bg=%x%x%x%x%x%x$") then
+        param.bg = arg[i]:match("%x%x%x%x%x%x")
+    elseif arg[i] == 'nobg' then
+        param.bg = false
+    else
+        local chordStr = arg[i]
+        local chord = SsvtDecode(chordStr)
+        local svgData = toSvg(DrawChord(chord), param)
+        count = count + 1
+        local fileName = count .. ".svg"
+        io.open(fileName, "w"):write(svgData):close()
     end
-    print("SVG files generated successfully.")
 end
+print(count .. " SVG files generated successfully.")
