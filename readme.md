@@ -1,4 +1,4 @@
-# SVG Shasavistic Chord Graph Generator
+# SVG Shasavistic Chord Diagram Generator
 
 Original Design from **LΛMPLIGHT**:
 [YouTube](https://www.youtube.com/@L4MPLIGHT)
@@ -8,7 +8,7 @@ Original Design from **LΛMPLIGHT**:
 
 > Screenshot taken from [this video](https://youtu.be/8nxWoh4NBeE) (youtube)
 
-Graph Code & SVG Renderer designed by MrZ_26:
+Diagram Code & SVG Renderer designed by MrZ_26:
 
 | **(2(3r),3r(2))** | **(2.,3r(-2x))**  | **(2.(3(-4r(3))))** | **(1.(1),4(-2),5(-3),6,7)** |
 | :---------------: | :---------------: | :-----------------: | :-------------------------: |
@@ -55,7 +55,7 @@ SVG files will be created at current directory.
 
 ## Other Examples
 
-|  Chord  |        Code        |        Graph        |
+|  Chord  |        Code        |       Diagram       |
 | :-----: | :----------------: | :-----------------: |
 | (?)Maj  |     `x(2,3r)`      |  ![1](/img/e1.svg)  |
 | (?)Min  |    `x(2(-3r))`     |  ![2](/img/e2.svg)  |
