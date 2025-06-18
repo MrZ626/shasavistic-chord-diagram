@@ -1,4 +1,16 @@
-local standalone = #({ ... }) == #arg
+local standalone = true
+
+if #({ ... }) == #arg then
+    local param = { ... }
+    for i = 1, #arg do
+        if param[i] ~= arg[i] then
+            standalone = false
+            break
+        end
+    end
+else
+    standalone = false
+end
 
 if standalone and #arg == 0 or arg[1] == '-h' or arg[1] == '--help' then
     print("Usage: lua chordGen.lua [option] chord1 chord2 ...")
@@ -256,180 +268,185 @@ local function DrawBranch(chord, x1, x2)
 end
 
 ---@param chord SsvtChord
-function DrawChord(chord)
+local function drawChord(chord)
     drawBuffer = {}
     DrawBranch(chord, 0, 1)
     table.sort(drawBuffer, function(a, b) return a.layer < b.layer end)
     return drawBuffer
 end
 
-if standalone then
-    ---@param dat string
-    ---@return SsvtChord
-    local function SsvtDecode(dat)
-        ---@type SsvtChord
-        local buf = { d = 0 }
-        local note = dat:match("^%-?%d+")
-        if note then
-            buf.d = tonumber(note:match("%-?%d+"))
-            dat = dat:sub(#note + 1)
-        end
-        while true do
-            local char = dat:sub(1, 1)
-            if char == '.' then
-                if math.abs(buf.d) == 1 then
-                    buf.note = 'skip'
-                else
-                    buf.note = 'dotted'
-                end
-            elseif char == 'l' then
-                buf.bias = 'l'
-            elseif char == 'r' then
-                buf.bias = 'r'
-            elseif char == 'x' then
-                buf.bass = true
-            else
-                break
-            end
-            dat = dat:sub(2)
-        end
-        local branch = string.match(dat, "%b()")
-        if branch then
-            branch = branch:sub(2, -2) -- Remove outer parentheses (and garbages come after)
-            local resStrings = {}
-            local balance = 0
-            local start = 1
-            for i = 1, #branch do
-                local char = branch:sub(i, i)
-                if char == "(" then
-                    balance = balance + 1
-                elseif char == ")" then
-                    balance = balance - 1
-                    assert(balance >= 0, "More ( than )")
-                elseif char == "," and balance == 0 then
-                    table.insert(resStrings, branch:sub(start, i - 1))
-                    start = i + 1
-                end
-            end
-            table.insert(resStrings, branch:sub(start))
-            for i = 1, #resStrings do
-                table.insert(buf, SsvtDecode(resStrings[i]))
-            end
-        end
-        return buf
-    end
-
-    local function toSvg(data, param)
-        -- Calculate bounding box
-        local minX, maxX, minY, maxY = 999, -999, 999, -999
-        for i = 1, #data do
-            local shape = data[i].points
-            local numCount = 0
-            for j = 1, #shape do
-                if type(shape[j]) == 'number' then
-                    numCount = numCount + 1
-                    if numCount % 2 == 1 then
-                        if shape[j] < minX then minX = shape[j] elseif shape[j] > maxX then maxX = shape[j] end
-                    else
-                        if shape[j] < minY then minY = shape[j] elseif shape[j] > maxY then maxY = shape[j] end
-                    end
-                end
-            end
-        end
-
-        minX, maxX = minX - .1, maxX + .1
-        minY, maxY = minY - .1, maxY + .1
-
-        -- Snap to zero & Flip vertically
-        maxX, maxY = maxX - minX, maxY - minY
-        for i = 1, #data do
-            local shape = data[i].points
-            local numCount = 0
-            for j = 1, #shape do
-                if type(shape[j]) == 'number' then
-                    numCount = numCount + 1
-                    if numCount % 2 == 1 then
-                        shape[j] = shape[j] - minX
-                    else
-                        shape[j] = maxY - (shape[j] - minY)
-                    end
-                end
-            end
-        end
-
-        -- Stringify (to 4 significant digits)
-        for i = 1, #data do
-            local shape = data[i].points
-            for j = 1, #shape do
-                if type(shape[j]) == 'number' then
-                    shape[j] = string.format("%.4g", shape[j])
-                end
-            end
-        end
-
-        local shapeData = ""
-        for i = 1, #data do
-            local shape = data[i]
-            if shape.mode == 'polygon' then
-                shapeData = shapeData ..
-                    ([[<polygon points="%s" fill="#%s" />]]):format(
-                        table.concat(shape.points, ","),
-                        shape.color
-                    )
-            elseif shape.mode == 'path' then
-                shapeData = shapeData ..
-                    ([[<path d="%s" fill="#%s" />]]):format(
-                        table.concat(shape.points, " "),
-                        shape.color
-                    )
-            end
-        end
-        local kx, ky
-        if param.w > 0 then kx = param.w / maxX end
-        if param.h > 0 then ky = param.h / maxY end
-        if not (kx and ky) then
-            if kx then
-                ky = kx
-            elseif ky then
-                kx = ky
-            else
-                kx, ky = 128, 128
-            end
-        end
-        return string.format(
-            [[<svg width="%d" height="%d" viewBox="0 0 %f %f" xmlns="http://www.w3.org/2000/svg">%s%s</svg>]],
-            math.ceil(kx * maxX),
-            math.ceil(ky * maxY),
-            string.format("%.4g", maxX),
-            string.format("%.4g", maxY),
-            param.bg and ([[<rect width="100%%" height="100%%" fill="#%s" />]]):format(param.bg) or "",
-            shapeData
-        )
-    end
-
-    local count = 0
-    local param = {
-        w = 128,
-        h = -1,
-        bg = false, -- 524E61
+if not standalone then
+    return {
+        dimData = dimData,
+        DrawChord = drawChord,
     }
-    for i = 1, #arg do
-        if arg[i]:match("^w=%-?%d+") then
-            param.w = tonumber(arg[i]:match("%-?%d+"))
-        elseif arg[i]:match("^h=%-?%d+") then
-            param.h = tonumber(arg[i]:match("%-?%d+"))
-        elseif arg[i]:match("^bg=%x%x%x%x%x%x$") then
-            param.bg = arg[i]:match("%x%x%x%x%x%x")
-        elseif arg[i] == 'nobg' then
-            param.bg = false
+end
+
+---@param dat string
+---@return SsvtChord
+local function SsvtDecode(dat)
+    ---@type SsvtChord
+    local buf = { d = 0 }
+    local note = dat:match("^%-?%d+")
+    if note then
+        buf.d = tonumber(note:match("%-?%d+"))
+        dat = dat:sub(#note + 1)
+    end
+    while true do
+        local char = dat:sub(1, 1)
+        if char == '.' then
+            if math.abs(buf.d) == 1 then
+                buf.note = 'skip'
+            else
+                buf.note = 'dotted'
+            end
+        elseif char == 'l' then
+            buf.bias = 'l'
+        elseif char == 'r' then
+            buf.bias = 'r'
+        elseif char == 'x' then
+            buf.bass = true
         else
-            local chordStr = arg[i]
-            local chord = SsvtDecode(chordStr)
-            local svgData = toSvg(DrawChord(chord), param)
-            count = count + 1
-            local fileName = count .. ".svg"
-            io.open(fileName, "w"):write(svgData):close()
+            break
+        end
+        dat = dat:sub(2)
+    end
+    local branch = string.match(dat, "%b()")
+    if branch then
+        branch = branch:sub(2, -2) -- Remove outer parentheses (and garbages come after)
+        local resStrings = {}
+        local balance = 0
+        local start = 1
+        for i = 1, #branch do
+            local char = branch:sub(i, i)
+            if char == "(" then
+                balance = balance + 1
+            elseif char == ")" then
+                balance = balance - 1
+                assert(balance >= 0, "More ( than )")
+            elseif char == "," and balance == 0 then
+                table.insert(resStrings, branch:sub(start, i - 1))
+                start = i + 1
+            end
+        end
+        table.insert(resStrings, branch:sub(start))
+        for i = 1, #resStrings do
+            table.insert(buf, SsvtDecode(resStrings[i]))
         end
     end
-    print(count .. " x SVG generated successfully.")
+    return buf
 end
+
+local function toSvg(data, param)
+    -- Calculate bounding box
+    local minX, maxX, minY, maxY = 999, -999, 999, -999
+    for i = 1, #data do
+        local shape = data[i].points
+        local numCount = 0
+        for j = 1, #shape do
+            if type(shape[j]) == 'number' then
+                numCount = numCount + 1
+                if numCount % 2 == 1 then
+                    if shape[j] < minX then minX = shape[j] elseif shape[j] > maxX then maxX = shape[j] end
+                else
+                    if shape[j] < minY then minY = shape[j] elseif shape[j] > maxY then maxY = shape[j] end
+                end
+            end
+        end
+    end
+
+    minX, maxX = minX - .1, maxX + .1
+    minY, maxY = minY - .1, maxY + .1
+
+    -- Snap to zero & Flip vertically
+    maxX, maxY = maxX - minX, maxY - minY
+    for i = 1, #data do
+        local shape = data[i].points
+        local numCount = 0
+        for j = 1, #shape do
+            if type(shape[j]) == 'number' then
+                numCount = numCount + 1
+                if numCount % 2 == 1 then
+                    shape[j] = shape[j] - minX
+                else
+                    shape[j] = maxY - (shape[j] - minY)
+                end
+            end
+        end
+    end
+
+    -- Stringify (to 4 significant digits)
+    for i = 1, #data do
+        local shape = data[i].points
+        for j = 1, #shape do
+            if type(shape[j]) == 'number' then
+                shape[j] = string.format("%.4g", shape[j])
+            end
+        end
+    end
+
+    local shapeData = ""
+    for i = 1, #data do
+        local shape = data[i]
+        if shape.mode == 'polygon' then
+            shapeData = shapeData ..
+                ([[<polygon points="%s" fill="#%s" />]]):format(
+                    table.concat(shape.points, ","),
+                    shape.color
+                )
+        elseif shape.mode == 'path' then
+            shapeData = shapeData ..
+                ([[<path d="%s" fill="#%s" />]]):format(
+                    table.concat(shape.points, " "),
+                    shape.color
+                )
+        end
+    end
+    local kx, ky
+    if param.w > 0 then kx = param.w / maxX end
+    if param.h > 0 then ky = param.h / maxY end
+    if not (kx and ky) then
+        if kx then
+            ky = kx
+        elseif ky then
+            kx = ky
+        else
+            kx, ky = 128, 128
+        end
+    end
+    return string.format(
+        [[<svg width="%d" height="%d" viewBox="0 0 %f %f" xmlns="http://www.w3.org/2000/svg">%s%s</svg>]],
+        math.ceil(kx * maxX),
+        math.ceil(ky * maxY),
+        string.format("%.4g", maxX),
+        string.format("%.4g", maxY),
+        param.bg and ([[<rect width="100%%" height="100%%" fill="#%s" />]]):format(param.bg) or "",
+        shapeData
+    )
+end
+
+local count = 0
+local param = {
+    w = 128,
+    h = -1,
+    bg = false, -- 524E61
+}
+for i = 1, #arg do
+    if arg[i]:match("^w=%-?%d+") then
+        param.w = tonumber(arg[i]:match("%-?%d+"))
+    elseif arg[i]:match("^h=%-?%d+") then
+        param.h = tonumber(arg[i]:match("%-?%d+"))
+    elseif arg[i]:match("^bg=%x%x%x%x%x%x$") then
+        param.bg = arg[i]:match("%x%x%x%x%x%x")
+    elseif arg[i] == 'nobg' then
+        param.bg = false
+    else
+        local chordStr = arg[i]
+        local chord = SsvtDecode(chordStr)
+        local svgData = toSvg(drawChord(chord), param)
+        count = count + 1
+        local fileName = count .. ".svg"
+        io.open(fileName, "w"):write(svgData):close()
+    end
+end
+print(count .. " x SVG generated successfully.")
