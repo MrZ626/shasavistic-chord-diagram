@@ -1,4 +1,6 @@
-if #arg == 0 or arg[1] == '-h' or arg[1] == '--help' then
+local standalone = #({ ... }) == #arg
+
+if standalone and #arg == 0 or arg[1] == '-h' or arg[1] == '--help' then
     print("Usage: lua chordGen.lua [option] chord1 chord2 ...")
     return
 end
@@ -62,8 +64,8 @@ end
 ---@field bass? true
 ---@field [number] SsvtChord
 
-local lw = .1
-local nw = .014
+local bw = .1   -- Beam width
+local nw = .014 -- Note width
 
 local drawBuffer
 
@@ -149,12 +151,12 @@ local function drawBeam(color, mode, x1, y1, x2, y2)
         local m = (x1 + x2) / 2
         addShape('polygon', color, 1,
             m, y1,
-            m + lw * .8, y1 * .9 + y2 * .1,
-            m + lw * .2, y1 * .9 + y2 * .1,
-            m + lw * .2, y2,
-            m - lw * .2, y2,
-            m - lw * .2, y1 * .9 + y2 * .1,
-            m - lw * .8, y1 * .9 + y2 * .1
+            m + bw * .8, y1 * .9 + y2 * .1,
+            m + bw * .2, y1 * .9 + y2 * .1,
+            m + bw * .2, y2,
+            m - bw * .2, y2,
+            m - bw * .2, y1 * .9 + y2 * .1,
+            m - bw * .8, y1 * .9 + y2 * .1
         )
     else
         if y1 > y2 then y1, y2 = y2, y1 end
@@ -163,52 +165,52 @@ local function drawBeam(color, mode, x1, y1, x2, y2)
             addShape('polygon', color, 2,
                 x1, y1,
                 x1, y2,
-                x1 + lw, y2,
-                x1 + lw, y1
+                x1 + bw, y2,
+                x1 + bw, y1
             )
         elseif mode == 'right' then
             addShape('polygon', color, 2,
                 x2, y1,
                 x2, y2,
-                x2 - lw, y2,
-                x2 - lw, y1
+                x2 - bw, y2,
+                x2 - bw, y1
             )
         elseif mode == 'mid' then
             local m = (x1 + x2) / 2
             addShape('polygon', color, 2,
-                m - lw / 4, y1,
-                m + lw / 4, y1,
-                m + lw / 4, y2,
-                m - lw / 4, y2
+                m - bw / 4, y1,
+                m + bw / 4, y1,
+                m + bw / 4, y2,
+                m - bw / 4, y2
             )
         elseif mode == 'rise' then
             addShape('polygon', color, 3,
                 x1, y1,
-                x1 + lw * 1.26, y1,
+                x1 + bw * 1.26, y1,
                 x2, y2,
-                x2 - lw * 1.26, y2
+                x2 - bw * 1.26, y2
             )
         elseif mode == 'fall' then
             addShape('polygon', color, 3,
                 x2, y1,
-                x2 - lw * 1.1, y1,
+                x2 - bw * 1.1, y1,
                 x1, y2,
-                x1 + lw * 1.1, y2
+                x1 + bw * 1.1, y2
             )
         elseif mode == 'arcleft' then
             addShape('path', color, 4,
                 "M", x1, y1,
-                "Q", x1 - 2.6 * lw, (y1 + y2) / 2, x1, y2,
-                "L", x1 + lw, y2,
-                "Q", x1 + lw - 2.6 * lw, (y1 + y2) / 2, x1 + lw, y1,
+                "Q", x1 - 2.6 * bw, (y1 + y2) / 2, x1, y2,
+                "L", x1 + bw, y2,
+                "Q", x1 + bw - 2.6 * bw, (y1 + y2) / 2, x1 + bw, y1,
                 "Z"
             )
         elseif mode == 'arcright' then
             addShape('path', color, 4,
                 "M", x2, y1,
-                "Q", x2 + 2.6 * lw, (y1 + y2) / 2, x2, y2,
-                "L", x2 - lw, y2,
-                "Q", x2 - lw + 2.6 * lw, (y1 + y2) / 2, x2 - lw, y1,
+                "Q", x2 + 2.6 * bw, (y1 + y2) / 2, x2, y2,
+                "L", x2 - bw, y2,
+                "Q", x2 - bw + 2.6 * bw, (y1 + y2) / 2, x2 - bw, y1,
                 "Z"
             )
         else
@@ -220,7 +222,7 @@ end
 ---@param chord SsvtChord
 ---@param x1 number
 ---@param x2 number
-function DrawBranch(chord, x1, x2)
+local function DrawBranch(chord, x1, x2)
     local nData = dimData[chord.d]
 
     assert(nData, "Unknown dimension: " .. tostring(chord.d))
@@ -261,171 +263,173 @@ function DrawChord(chord)
     return drawBuffer
 end
 
----@param dat string
----@return SsvtChord
-local function SsvtDecode(dat)
-    ---@type SsvtChord
-    local buf = { d = 0 }
-    local note = dat:match("^%-?%d+")
-    if note then
-        buf.d = tonumber(note:match("%-?%d+"))
-        dat = dat:sub(#note + 1)
-    end
-    while true do
-        local char = dat:sub(1, 1)
-        if char == '.' then
-            if math.abs(buf.d) == 1 then
-                buf.note = 'skip'
+if standalone then
+    ---@param dat string
+    ---@return SsvtChord
+    local function SsvtDecode(dat)
+        ---@type SsvtChord
+        local buf = { d = 0 }
+        local note = dat:match("^%-?%d+")
+        if note then
+            buf.d = tonumber(note:match("%-?%d+"))
+            dat = dat:sub(#note + 1)
+        end
+        while true do
+            local char = dat:sub(1, 1)
+            if char == '.' then
+                if math.abs(buf.d) == 1 then
+                    buf.note = 'skip'
+                else
+                    buf.note = 'dotted'
+                end
+            elseif char == 'l' then
+                buf.bias = 'l'
+            elseif char == 'r' then
+                buf.bias = 'r'
+            elseif char == 'x' then
+                buf.bass = true
             else
-                buf.note = 'dotted'
+                break
             end
-        elseif char == 'l' then
-            buf.bias = 'l'
-        elseif char == 'r' then
-            buf.bias = 'r'
-        elseif char == 'x' then
-            buf.bass = true
-        else
-            break
+            dat = dat:sub(2)
         end
-        dat = dat:sub(2)
-    end
-    local branch = string.match(dat, "%b()")
-    if branch then
-        branch = branch:sub(2, -2) -- Remove outer parentheses (and garbages come after)
-        local resStrings = {}
-        local balance = 0
-        local start = 1
-        for i = 1, #branch do
-            local char = branch:sub(i, i)
-            if char == "(" then
-                balance = balance + 1
-            elseif char == ")" then
-                balance = balance - 1
-                assert(balance >= 0, "More ( than )")
-            elseif char == "," and balance == 0 then
-                table.insert(resStrings, branch:sub(start, i - 1))
-                start = i + 1
+        local branch = string.match(dat, "%b()")
+        if branch then
+            branch = branch:sub(2, -2) -- Remove outer parentheses (and garbages come after)
+            local resStrings = {}
+            local balance = 0
+            local start = 1
+            for i = 1, #branch do
+                local char = branch:sub(i, i)
+                if char == "(" then
+                    balance = balance + 1
+                elseif char == ")" then
+                    balance = balance - 1
+                    assert(balance >= 0, "More ( than )")
+                elseif char == "," and balance == 0 then
+                    table.insert(resStrings, branch:sub(start, i - 1))
+                    start = i + 1
+                end
+            end
+            table.insert(resStrings, branch:sub(start))
+            for i = 1, #resStrings do
+                table.insert(buf, SsvtDecode(resStrings[i]))
             end
         end
-        table.insert(resStrings, branch:sub(start))
-        for i = 1, #resStrings do
-            table.insert(buf, SsvtDecode(resStrings[i]))
-        end
+        return buf
     end
-    return buf
-end
 
-local function toSvg(data, param)
-    -- Calculate bounding box
-    local minX, maxX, minY, maxY = 999, -999, 999, -999
-    for i = 1, #data do
-        local shape = data[i].points
-        local numCount = 0
-        for j = 1, #shape do
-            if type(shape[j]) == 'number' then
-                numCount = numCount + 1
-                if numCount % 2 == 1 then
-                    if shape[j] < minX then minX = shape[j] elseif shape[j] > maxX then maxX = shape[j] end
-                else
-                    if shape[j] < minY then minY = shape[j] elseif shape[j] > maxY then maxY = shape[j] end
+    local function toSvg(data, param)
+        -- Calculate bounding box
+        local minX, maxX, minY, maxY = 999, -999, 999, -999
+        for i = 1, #data do
+            local shape = data[i].points
+            local numCount = 0
+            for j = 1, #shape do
+                if type(shape[j]) == 'number' then
+                    numCount = numCount + 1
+                    if numCount % 2 == 1 then
+                        if shape[j] < minX then minX = shape[j] elseif shape[j] > maxX then maxX = shape[j] end
+                    else
+                        if shape[j] < minY then minY = shape[j] elseif shape[j] > maxY then maxY = shape[j] end
+                    end
                 end
             end
         end
-    end
 
-    minX, maxX = minX - .1, maxX + .1
-    minY, maxY = minY - .1, maxY + .1
+        minX, maxX = minX - .1, maxX + .1
+        minY, maxY = minY - .1, maxY + .1
 
-    -- Snap to zero & Flip vertically
-    maxX, maxY = maxX - minX, maxY - minY
-    for i = 1, #data do
-        local shape = data[i].points
-        local numCount = 0
-        for j = 1, #shape do
-            if type(shape[j]) == 'number' then
-                numCount = numCount + 1
-                if numCount % 2 == 1 then
-                    shape[j] = shape[j] - minX
-                else
-                    shape[j] = maxY - (shape[j] - minY)
+        -- Snap to zero & Flip vertically
+        maxX, maxY = maxX - minX, maxY - minY
+        for i = 1, #data do
+            local shape = data[i].points
+            local numCount = 0
+            for j = 1, #shape do
+                if type(shape[j]) == 'number' then
+                    numCount = numCount + 1
+                    if numCount % 2 == 1 then
+                        shape[j] = shape[j] - minX
+                    else
+                        shape[j] = maxY - (shape[j] - minY)
+                    end
                 end
             end
         end
-    end
 
-    -- Stringify (to 4 significant digits)
-    for i = 1, #data do
-        local shape = data[i].points
-        for j = 1, #shape do
-            if type(shape[j]) == 'number' then
-                shape[j] = string.format("%.4g", shape[j])
+        -- Stringify (to 4 significant digits)
+        for i = 1, #data do
+            local shape = data[i].points
+            for j = 1, #shape do
+                if type(shape[j]) == 'number' then
+                    shape[j] = string.format("%.4g", shape[j])
+                end
             end
         end
+
+        local shapeData = ""
+        for i = 1, #data do
+            local shape = data[i]
+            if shape.mode == 'polygon' then
+                shapeData = shapeData ..
+                    ([[<polygon points="%s" fill="#%s" />]]):format(
+                        table.concat(shape.points, ","),
+                        shape.color
+                    )
+            elseif shape.mode == 'path' then
+                shapeData = shapeData ..
+                    ([[<path d="%s" fill="#%s" />]]):format(
+                        table.concat(shape.points, " "),
+                        shape.color
+                    )
+            end
+        end
+        local kx, ky
+        if param.w > 0 then kx = param.w / maxX end
+        if param.h > 0 then ky = param.h / maxY end
+        if not (kx and ky) then
+            if kx then
+                ky = kx
+            elseif ky then
+                kx = ky
+            else
+                kx, ky = 128, 128
+            end
+        end
+        return string.format(
+            [[<svg width="%d" height="%d" viewBox="0 0 %f %f" xmlns="http://www.w3.org/2000/svg">%s%s</svg>]],
+            math.ceil(kx * maxX),
+            math.ceil(ky * maxY),
+            string.format("%.4g", maxX),
+            string.format("%.4g", maxY),
+            param.bg and ([[<rect width="100%%" height="100%%" fill="#%s" />]]):format(param.bg) or "",
+            shapeData
+        )
     end
 
-    local shapeData = ""
-    for i = 1, #data do
-        local shape = data[i]
-        if shape.mode == 'polygon' then
-            shapeData = shapeData ..
-                ([[<polygon points="%s" fill="#%s" />]]):format(
-                    table.concat(shape.points, ","),
-                    shape.color
-                )
-        elseif shape.mode == 'path' then
-            shapeData = shapeData ..
-                ([[<path d="%s" fill="#%s" />]]):format(
-                    table.concat(shape.points, " "),
-                    shape.color
-                )
-        end
-    end
-    local kx, ky
-    if param.w > 0 then kx = param.w / maxX end
-    if param.h > 0 then ky = param.h / maxY end
-    if not (kx and ky) then
-        if kx then
-            ky = kx
-        elseif ky then
-            kx = ky
+    local count = 0
+    local param = {
+        w = 128,
+        h = -1,
+        bg = false, -- 524E61
+    }
+    for i = 1, #arg do
+        if arg[i]:match("^w=%-?%d+") then
+            param.w = tonumber(arg[i]:match("%-?%d+"))
+        elseif arg[i]:match("^h=%-?%d+") then
+            param.h = tonumber(arg[i]:match("%-?%d+"))
+        elseif arg[i]:match("^bg=%x%x%x%x%x%x$") then
+            param.bg = arg[i]:match("%x%x%x%x%x%x")
+        elseif arg[i] == 'nobg' then
+            param.bg = false
         else
-            kx, ky = 128, 128
+            local chordStr = arg[i]
+            local chord = SsvtDecode(chordStr)
+            local svgData = toSvg(DrawChord(chord), param)
+            count = count + 1
+            local fileName = count .. ".svg"
+            io.open(fileName, "w"):write(svgData):close()
         end
     end
-    return string.format(
-        [[<svg width="%d" height="%d" viewBox="0 0 %f %f" xmlns="http://www.w3.org/2000/svg">%s%s</svg>]],
-        math.ceil(kx * maxX),
-        math.ceil(ky * maxY),
-        string.format("%.4g", maxX),
-        string.format("%.4g", maxY),
-        param.bg and ([[<rect width="100%%" height="100%%" fill="#%s" />]]):format(param.bg) or "",
-        shapeData
-    )
+    print(count .. " x SVG generated successfully.")
 end
-
-local count = 0
-local param = {
-    w = 128,
-    h = -1,
-    bg = false, -- 524E61
-}
-for i = 1, #arg do
-    if arg[i]:match("^w=%-?%d+") then
-        param.w = tonumber(arg[i]:match("%-?%d+"))
-    elseif arg[i]:match("^h=%-?%d+") then
-        param.h = tonumber(arg[i]:match("%-?%d+"))
-    elseif arg[i]:match("^bg=%x%x%x%x%x%x$") then
-        param.bg = arg[i]:match("%x%x%x%x%x%x")
-    elseif arg[i] == 'nobg' then
-        param.bg = false
-    else
-        local chordStr = arg[i]
-        local chord = SsvtDecode(chordStr)
-        local svgData = toSvg(DrawChord(chord), param)
-        count = count + 1
-        local fileName = count .. ".svg"
-        io.open(fileName, "w"):write(svgData):close()
-    end
-end
-print(count .. " x SVG generated successfully.")
