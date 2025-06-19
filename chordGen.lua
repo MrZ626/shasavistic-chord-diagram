@@ -290,7 +290,7 @@ end
 
 ---@param str string
 ---@return SSVT.Chord
-local function decodeStr(str)
+local function decode(str)
     ---@type SSVT.Chord
     local buf = { d = 0 }
     local note = str:match("^%-?%d+")
@@ -337,10 +337,31 @@ local function decodeStr(str)
         end
         table.insert(resStrings, branch:sub(start))
         for i = 1, #resStrings do
-            table.insert(buf, decodeStr(resStrings[i]))
+            table.insert(buf, decode(resStrings[i]))
         end
     end
     return buf
+end
+
+---@param chord SSVT.Chord
+---@return string
+local function encode(chord)
+    local str = ""
+    if chord.d then str = str .. chord.d end
+    if chord.note then str = str .. '.' end
+    if chord.bass then str = str .. 'x' end
+    if chord.bias then str = str .. chord.bias end
+    if chord[1] then
+        str = str .. "("
+        for i = 1, #chord do
+            str = str .. encode(chord[i])
+            if i < #chord then
+                str = str .. ","
+            end
+        end
+        str = str .. ")"
+    end
+    return str
 end
 
 ---@param data SSVT.Shape[]
@@ -436,7 +457,8 @@ if not standalone then
     return {
         env = env,
         dimData = dimData,
-        decode = decodeStr,
+        decode = decode,
+        encode = encode,
         drawChord = drawChord,
         toSVG = toSVG,
     }
@@ -458,7 +480,7 @@ for i = 1, #arg do
         env.bgColor = false
     else
         local chordStr = arg[i]
-        local chord = decodeStr(chordStr)
+        local chord = decode(chordStr)
         local svgData = toSVG(drawChord(chord))
         count = count + 1
         local fileName = count .. ".svg"
