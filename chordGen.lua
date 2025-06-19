@@ -67,6 +67,8 @@ for i = 1, #dimData do
     }
 end
 
+local ins = table.insert
+
 ---@alias SSVT.Dim number
 
 ---@class SSVT.Chord
@@ -110,7 +112,7 @@ local function addShape(mode, color, layer, ...)
         end
     end
 
-    table.insert(drawBuffer, {
+    ins(drawBuffer, {
         mode = mode,
         _layer = layer,
         color = color,
@@ -306,10 +308,8 @@ local function decode(str)
             else
                 buf.note = 'dotted'
             end
-        elseif char == 'l' then
-            buf.bias = 'l'
-        elseif char == 'r' then
-            buf.bias = 'r'
+        elseif char == 'l' or char == 'r' then
+            buf.bias = char
         elseif char == 'x' then
             buf.bass = true
         else
@@ -331,13 +331,13 @@ local function decode(str)
                 balance = balance - 1
                 assert(balance >= 0, "More ( than )")
             elseif char == "," and balance == 0 then
-                table.insert(resStrings, branch:sub(start, i - 1))
+                ins(resStrings, branch:sub(start, i - 1))
                 start = i + 1
             end
         end
-        table.insert(resStrings, branch:sub(start))
+        ins(resStrings, branch:sub(start))
         for i = 1, #resStrings do
-            table.insert(buf, decode(resStrings[i]))
+            ins(buf, decode(resStrings[i]))
         end
     end
     return buf
@@ -346,22 +346,22 @@ end
 ---@param chord SSVT.Chord
 ---@return string
 local function encode(chord)
-    local str = ""
-    if chord.d then str = str .. chord.d end
-    if chord.note then str = str .. '.' end
-    if chord.bass then str = str .. 'x' end
-    if chord.bias then str = str .. chord.bias end
+    local str = {}
+    if chord.d then ins(str, chord.d) end
+    if chord.bass then ins(str, "x") end
+    if chord.bias then ins(str, chord.bias) end
+    if chord.note then ins(str, ".") end
     if chord[1] then
-        str = str .. "("
+        ins(str, "(")
         for i = 1, #chord do
-            str = str .. encode(chord[i])
+            ins(str, encode(chord[i]))
             if i < #chord then
-                str = str .. ","
+                ins(str, ",")
             end
         end
-        str = str .. ")"
+        ins(str, ")")
     end
-    return str
+    return table.concat(str)
 end
 
 ---@param data SSVT.Shape[]
