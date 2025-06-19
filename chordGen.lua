@@ -275,16 +275,9 @@ local function drawChord(chord)
     return drawBuffer
 end
 
-if not standalone then
-    return {
-        dimData = dimData,
-        DrawChord = drawChord,
-    }
-end
-
 ---@param dat string
 ---@return SsvtChord
-local function SsvtDecode(dat)
+local function decode(dat)
     ---@type SsvtChord
     local buf = { d = 0 }
     local note = dat:match("^%-?%d+")
@@ -331,10 +324,18 @@ local function SsvtDecode(dat)
         end
         table.insert(resStrings, branch:sub(start))
         for i = 1, #resStrings do
-            table.insert(buf, SsvtDecode(resStrings[i]))
+            table.insert(buf, decode(resStrings[i]))
         end
     end
     return buf
+end
+
+if not standalone then
+    return {
+        dimData = dimData,
+        decode = decode,
+        drawChord = drawChord,
+    }
 end
 
 local function toSvg(data, param)
@@ -442,7 +443,7 @@ for i = 1, #arg do
         param.bg = false
     else
         local chordStr = arg[i]
-        local chord = SsvtDecode(chordStr)
+        local chord = decode(chordStr)
         local svgData = toSvg(drawChord(chord), param)
         count = count + 1
         local fileName = count .. ".svg"
