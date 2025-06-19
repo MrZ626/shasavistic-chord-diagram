@@ -87,10 +87,10 @@ local drawBuffer
 
 ---@class SSVT.Environment
 local env = {
-    beamW = .1,    -- Beam width
-    noteW = .014,  -- Note width
-    svgW = 128,    -- SVG width, -1 = auto
-    svgH = -1,     -- SVG height, -1 = auto
+    beamW = .1,      -- Beam width
+    noteW = .014,    -- Note width
+    svgW = 128,      -- SVG width, -1 = auto
+    svgH = -1,       -- SVG height, -1 = auto
     bgColor = false, -- 524E61
 }
 
@@ -288,18 +288,18 @@ local function drawChord(chord)
     return drawBuffer
 end
 
----@param dat string
+---@param str string
 ---@return SSVT.Chord
-local function decode(dat)
+local function decodeStr(str)
     ---@type SSVT.Chord
     local buf = { d = 0 }
-    local note = dat:match("^%-?%d+")
+    local note = str:match("^%-?%d+")
     if note then
         buf.d = tonumber(note:match("%-?%d+"))
-        dat = dat:sub(#note + 1)
+        str = str:sub(#note + 1)
     end
     while true do
-        local char = dat:sub(1, 1)
+        local char = str:sub(1, 1)
         if char == '.' then
             if math.abs(buf.d) == 1 then
                 buf.note = 'skip'
@@ -315,9 +315,9 @@ local function decode(dat)
         else
             break
         end
-        dat = dat:sub(2)
+        str = str:sub(2)
     end
-    local branch = string.match(dat, "%b()")
+    local branch = string.match(str, "%b()")
     if branch then
         branch = branch:sub(2, -2) -- Remove outer parentheses (and garbages come after)
         local resStrings = {}
@@ -337,22 +337,14 @@ local function decode(dat)
         end
         table.insert(resStrings, branch:sub(start))
         for i = 1, #resStrings do
-            table.insert(buf, decode(resStrings[i]))
+            table.insert(buf, decodeStr(resStrings[i]))
         end
     end
     return buf
 end
 
-if not standalone then
-    return {
-        env = env,
-        dimData = dimData,
-        decode = decode,
-        drawChord = drawChord,
-    }
-end
-
-local function toSvg(data)
+---@param data SSVT.Shape[]
+local function toSVG(data)
     -- Calculate bounding box
     local minX, maxX, minY, maxY = 999, -999, 999, -999
     for i = 1, #data do
@@ -440,6 +432,16 @@ local function toSvg(data)
     )
 end
 
+if not standalone then
+    return {
+        env = env,
+        dimData = dimData,
+        decode = decodeStr,
+        drawChord = drawChord,
+        toSVG = toSVG,
+    }
+end
+
 local count = 0
 for i = 1, #arg do
     if arg[i]:match("^bw=.+") then
@@ -456,8 +458,8 @@ for i = 1, #arg do
         env.bgColor = false
     else
         local chordStr = arg[i]
-        local chord = decode(chordStr)
-        local svgData = toSvg(drawChord(chord))
+        local chord = decodeStr(chordStr)
+        local svgData = toSVG(drawChord(chord))
         count = count + 1
         local fileName = count .. ".svg"
         io.open(fileName, "w"):write(svgData):close()
