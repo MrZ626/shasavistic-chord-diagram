@@ -1,9 +1,9 @@
 local standalone = true
 
 if #({ ... }) == #arg then
-    local param = { ... }
+    local _arg = { ... }
     for i = 1, #arg do
-        if param[i] ~= arg[i] then
+        if _arg[i] ~= arg[i] then
             standalone = false
             break
         end
@@ -67,19 +67,32 @@ for i = 1, #dimData do
     }
 end
 
----@alias SsvtDim number
+---@alias SSVT.Dim number
 
----@class SsvtChord
----@field d? SsvtDim
+---@class SSVT.Chord
+---@field d? SSVT.Dim
 ---@field note? 'skip' | 'dotted'
 ---@field bias? 'l' | 'r'
 ---@field bass? true
----@field [number] SsvtChord
+---@field [number] SSVT.Chord
 
-local bw = .1   -- Beam width
-local nw = .014 -- Note width
+---@class SSVT.Shape
+---@field mode 'polygon' | 'path'
+---@field _layer number
+---@field color string
+---@field points (string | number)[]
 
+---@type SSVT.Shape[]
 local drawBuffer
+
+---@class SSVT.Environment
+local env = {
+    beamW = .1,    -- Beam width
+    noteW = .014,  -- Note width
+    svgW = 128,    -- SVG width, -1 = auto
+    svgH = -1,     -- SVG height, -1 = auto
+    bgColor = false, -- 524E61
+}
 
 local ucs_x, ucs_y = 0, 0
 local function moveOrigin(dx, dy)
@@ -99,7 +112,7 @@ local function addShape(mode, color, layer, ...)
 
     table.insert(drawBuffer, {
         mode = mode,
-        layer = layer,
+        _layer = layer,
         color = color,
         points = points,
     })
@@ -131,28 +144,28 @@ local function drawNote(mode, x1, x2)
             local x = lerp(x1 + .05, x2 - .05, i / 11)
             local w = (x2 - x1 - .1) / 11
             addShape('polygon', "F0F0F0", 0,
-                x, -nw / 2,
-                x + w, -nw / 2,
-                x + w, nw / 2,
-                x, nw / 2
+                x, -env.noteW / 2,
+                x + w, -env.noteW / 2,
+                x + w, env.noteW / 2,
+                x, env.noteW / 2
             )
         end
     elseif mode == 'skip' then
         -- Short line
         x1, x2 = lerp(x1, x2, .3), lerp(x2, x1, .3)
         addShape('polygon', "808080", 0,
-            x1 + .05, -nw / 2,
-            x2 - .05, -nw / 2,
-            x2 - .05, nw / 2,
-            x1 + .05, nw / 2
+            x1 + .05, -env.noteW / 2,
+            x2 - .05, -env.noteW / 2,
+            x2 - .05, env.noteW / 2,
+            x1 + .05, env.noteW / 2
         )
     else
         -- Line
         addShape('polygon', "F0F0F0", 0,
-            x1 + .05, -nw / 2,
-            x2 - .05, -nw / 2,
-            x2 - .05, nw / 2,
-            x1 + .05, nw / 2
+            x1 + .05, -env.noteW / 2,
+            x2 - .05, -env.noteW / 2,
+            x2 - .05, env.noteW / 2,
+            x1 + .05, env.noteW / 2
         )
     end
 end
@@ -163,66 +176,66 @@ local function drawBeam(color, mode, x1, y1, x2, y2)
         local m = (x1 + x2) / 2
         addShape('polygon', color, 1,
             m, y1,
-            m + bw * .8, y1 * .9 + y2 * .1,
-            m + bw * .2, y1 * .9 + y2 * .1,
-            m + bw * .2, y2,
-            m - bw * .2, y2,
-            m - bw * .2, y1 * .9 + y2 * .1,
-            m - bw * .8, y1 * .9 + y2 * .1
+            m + env.beamW * .8, y1 * .9 + y2 * .1,
+            m + env.beamW * .2, y1 * .9 + y2 * .1,
+            m + env.beamW * .2, y2,
+            m - env.beamW * .2, y2,
+            m - env.beamW * .2, y1 * .9 + y2 * .1,
+            m - env.beamW * .8, y1 * .9 + y2 * .1
         )
     else
         if y1 > y2 then y1, y2 = y2, y1 end
-        y1, y2 = y1 - nw / 2, y2 + nw / 2
+        y1, y2 = y1 - env.noteW / 2, y2 + env.noteW / 2
         if mode == 'left' then
             addShape('polygon', color, 2,
                 x1, y1,
                 x1, y2,
-                x1 + bw, y2,
-                x1 + bw, y1
+                x1 + env.beamW, y2,
+                x1 + env.beamW, y1
             )
         elseif mode == 'right' then
             addShape('polygon', color, 2,
                 x2, y1,
                 x2, y2,
-                x2 - bw, y2,
-                x2 - bw, y1
+                x2 - env.beamW, y2,
+                x2 - env.beamW, y1
             )
         elseif mode == 'mid' then
             local m = (x1 + x2) / 2
             addShape('polygon', color, 2,
-                m - bw / 4, y1,
-                m + bw / 4, y1,
-                m + bw / 4, y2,
-                m - bw / 4, y2
+                m - env.beamW / 4, y1,
+                m + env.beamW / 4, y1,
+                m + env.beamW / 4, y2,
+                m - env.beamW / 4, y2
             )
         elseif mode == 'rise' then
             addShape('polygon', color, 3,
                 x1, y1,
-                x1 + bw * 1.26, y1,
+                x1 + env.beamW * 1.26, y1,
                 x2, y2,
-                x2 - bw * 1.26, y2
+                x2 - env.beamW * 1.26, y2
             )
         elseif mode == 'fall' then
             addShape('polygon', color, 3,
                 x2, y1,
-                x2 - bw * 1.1, y1,
+                x2 - env.beamW * 1.1, y1,
                 x1, y2,
-                x1 + bw * 1.1, y2
+                x1 + env.beamW * 1.1, y2
             )
         elseif mode == 'arcleft' then
             addShape('path', color, 4,
                 "M", x1, y1,
-                "Q", x1 - 2.6 * bw, (y1 + y2) / 2, x1, y2,
-                "L", x1 + bw, y2,
-                "Q", x1 + bw - 2.6 * bw, (y1 + y2) / 2, x1 + bw, y1,
+                "Q", x1 - 2.6 * env.beamW, (y1 + y2) / 2, x1, y2,
+                "L", x1 + env.beamW, y2,
+                "Q", x1 + env.beamW - 2.6 * env.beamW, (y1 + y2) / 2, x1 + env.beamW, y1,
                 "Z"
             )
         elseif mode == 'arcright' then
             addShape('path', color, 4,
                 "M", x2, y1,
-                "Q", x2 + 2.6 * bw, (y1 + y2) / 2, x2, y2,
-                "L", x2 - bw, y2,
-                "Q", x2 - bw + 2.6 * bw, (y1 + y2) / 2, x2 - bw, y1,
+                "Q", x2 + 2.6 * env.beamW, (y1 + y2) / 2, x2, y2,
+                "L", x2 - env.beamW, y2,
+                "Q", x2 - env.beamW + 2.6 * env.beamW, (y1 + y2) / 2, x2 - env.beamW, y1,
                 "Z"
             )
         else
@@ -231,7 +244,7 @@ local function drawBeam(color, mode, x1, y1, x2, y2)
     end
 end
 
----@param chord SsvtChord
+---@param chord SSVT.Chord
 ---@param x1 number
 ---@param x2 number
 local function DrawBranch(chord, x1, x2)
@@ -267,18 +280,18 @@ local function DrawBranch(chord, x1, x2)
     moveOrigin(0, -nData.yStep)
 end
 
----@param chord SsvtChord
+---@param chord SSVT.Chord
 local function drawChord(chord)
     drawBuffer = {}
     DrawBranch(chord, 0, 1)
-    table.sort(drawBuffer, function(a, b) return a.layer < b.layer end)
+    table.sort(drawBuffer, function(a, b) return a._layer < b._layer end)
     return drawBuffer
 end
 
 ---@param dat string
----@return SsvtChord
+---@return SSVT.Chord
 local function decode(dat)
-    ---@type SsvtChord
+    ---@type SSVT.Chord
     local buf = { d = 0 }
     local note = dat:match("^%-?%d+")
     if note then
@@ -332,13 +345,14 @@ end
 
 if not standalone then
     return {
+        env = env,
         dimData = dimData,
         decode = decode,
         drawChord = drawChord,
     }
 end
 
-local function toSvg(data, param)
+local function toSvg(data)
     -- Calculate bounding box
     local minX, maxX, minY, maxY = 999, -999, 999, -999
     for i = 1, #data do
@@ -404,8 +418,8 @@ local function toSvg(data, param)
         end
     end
     local kx, ky
-    if param.w > 0 then kx = param.w / maxX end
-    if param.h > 0 then ky = param.h / maxY end
+    if env.svgW > 0 then kx = env.svgW / maxX end
+    if env.svgH > 0 then ky = env.svgH / maxY end
     if not (kx and ky) then
         if kx then
             ky = kx
@@ -421,30 +435,29 @@ local function toSvg(data, param)
         math.ceil(ky * maxY),
         string.format("%.4g", maxX),
         string.format("%.4g", maxY),
-        param.bg and ([[<rect width="100%%" height="100%%" fill="#%s" />]]):format(param.bg) or "",
+        env.bgColor and ([[<rect width="100%%" height="100%%" fill="#%s" />]]):format(env.bgColor) or "",
         shapeData
     )
 end
 
 local count = 0
-local param = {
-    w = 128,
-    h = -1,
-    bg = false, -- 524E61
-}
 for i = 1, #arg do
-    if arg[i]:match("^w=%-?%d+") then
-        param.w = tonumber(arg[i]:match("%-?%d+"))
+    if arg[i]:match("^bw=.+") then
+        env.beamW = tonumber(arg[i]:match("=(.+)")) or env.beamW
+    elseif arg[i]:match("^bh=.+") then
+        env.bh = tonumber(arg[i]:match("=(.+)")) or env.bh
+    elseif arg[i]:match("^w=%-?%d+") then
+        env.svgW = tonumber(arg[i]:match("%-?%d+"))
     elseif arg[i]:match("^h=%-?%d+") then
-        param.h = tonumber(arg[i]:match("%-?%d+"))
+        env.svgH = tonumber(arg[i]:match("%-?%d+"))
     elseif arg[i]:match("^bg=%x%x%x%x%x%x$") then
-        param.bg = arg[i]:match("%x%x%x%x%x%x")
+        env.bgColor = arg[i]:match("%x%x%x%x%x%x")
     elseif arg[i] == 'nobg' then
-        param.bg = false
+        env.bgColor = false
     else
         local chordStr = arg[i]
         local chord = decode(chordStr)
-        local svgData = toSvg(drawChord(chord), param)
+        local svgData = toSvg(drawChord(chord))
         count = count + 1
         local fileName = count .. ".svg"
         io.open(fileName, "w"):write(svgData):close()
