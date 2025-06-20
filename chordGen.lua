@@ -19,51 +19,53 @@ end
 
 local dimData = {
     [0] = { -- 0D
-        yStep = 0,
+        freq = 1,
         draw = 'none',
     },
     { -- 1D (octave)
-        yStep = math.log(8 / 4, 2),
+        freq = 8 / 4,
         draw = 'arrow',
         color = '808080',
     },
     { -- 2D (fifth)
-        yStep = math.log(6 / 4, 2),
+        freq = 6 / 4,
         draw = 'left',
         color = 'F27A93',
     },
     { -- 3D (third)
-        yStep = math.log(5 / 4, 2),
+        freq = 5 / 4,
         draw = 'right',
         color = '6DD884',
     },
     { -- 4D
-        yStep = math.log(7 / 4, 2),
+        freq = 7 / 4,
         draw = 'rise',
         color = 'B498EE',
     },
     { -- 5D
-        yStep = math.log(11 / 4, 2),
+        freq = 11 / 4,
         draw = 'fall',
         color = 'FFC247',
     },
     { -- 6D
-        yStep = math.log(13 / 4, 2),
+        freq = 13 / 4,
         draw = 'arcleft',
         color = 'B5B539',
     },
     { -- 7D
-        yStep = math.log(17 / 4, 2),
+        freq = 17 / 4,
         draw = 'arcright',
         color = 'E19C7D',
     },
 }
-for i = 1, #dimData do
+for i = 0, #dimData do
     local dim = dimData[i]
+    dim.yStep = math.log(dim.freq, 2)
     dimData[-i] = {
-        yStep = -dim.yStep,
+        freq = 1 / dim.freq,
         draw = dim.draw,
         color = dim.color,
+        yStep = -dim.yStep,
     }
 end
 
