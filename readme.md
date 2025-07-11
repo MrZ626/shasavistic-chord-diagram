@@ -1,5 +1,8 @@
 # SVG Shasavistic Chord Diagram Generator
 
+**New features including fancy graphics and real-time editing with keyboard in this [repo](https://github.com/MrZ626/shasavistic-keyboard).**  
+**This repo will no longer be updated.**
+
 Original Design from **LΛMPLIGHT**:
 [YouTube](https://www.youtube.com/@L4MPLIGHT)
 [Website](https://lamplight0.sakura.ne.jp/a/)
